@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manajemen Keuangan Bulanan - GWM Latimojong</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background-color: #0b1120; color: #f8fafc; font-family: system-ui, -apple-system, sans-serif; }
+        @media print {
+            body { background-color: white !important; color: black !important; }
+            .no-print { display: none !important; }
+            .print-area { background: white !important; color: black !important; border: none !important; box-shadow: none !important; }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <div class="max-w-7xl mx-auto px-4 py-6 flex-grow w-full flex flex-col gap-6">
+
+        <!-- Header -->
+        <header class="bg-slate-900/85 backdrop-blur-md border border-slate-800 rounded-2xl p-5 shadow-lg flex flex-col md:flex-row justify-between items-center gap-4 no-print">
+            <div class="flex items-center gap-3">
+                <div class="bg-emerald-600 p-3 rounded-xl text-white shadow-md">
+                    <i class="fa-solid fa-wallet text-2xl"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="text-xl font-bold tracking-tight text-white">Keuangan Bulanan</h1>
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/35">Mulai 1 Oktober 2026</span>
+                    </div>
+                    <p class="text-xs text-slate-400">Pencatatan Pemasukan, Gaji, & Pengeluaran Harian</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2.5 flex-wrap justify-center">
+                <div class="flex items-center gap-1.5 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800 text-xs">
+                    <span class="text-slate-400"><i class="fa-solid fa-calendar-days mr-1"></i> Filter Bulan:</span>
+                    <select id="filterBulan" onchange="changeFilterBulan()" class="bg-transparent text-white font-semibold focus:outline-none cursor-pointer">
+                        <!-- Diisi JS -->
+                    </select>
+                </div>
+                <button onclick="printLaporanPDF()" class="bg-purple-600 hover:bg-purple-700 text-white px-3.5 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 shadow-sm">
+                    <i class="fa-solid fa-print"></i> Cetak Laporan PDF
+                </button>
+                <button onclick="openPemasukanModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 shadow-sm">
+                    <i class="fa-solid fa-plus-circle"></i> Tambah Pemasukan
+                </button>
+                <button onclick="openPengeluaranModal()" class="bg-rose-600 hover:bg-rose-700 text-white px-3.5 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 shadow-sm">
+                    <i class="fa-solid fa-minus-circle"></i> Tambah Pengeluaran
+                </button>
+            </div>
+        </header>
+
+        <!-- Area Cetak Laporan PDF (Muncul saat print) -->
+        <div class="hidden print:block p-4 border-b border-gray-300 mb-2">
+            <div class="text-center">
+                <h2 class="text-2xl font-bold uppercase text-black">LAPORAN KEUANGAN BULANAN</h2>
+                <p id="printTitleBulan" class="text-sm font-semibold text-gray-700 mt-1">Periode: Oktober 2026</p>
+                <p class="text-xs text-gray-500">Tanggal Cetak: <span id="printDateNow"></span></p>
+            </div>
+        </div>
+
+        <!-- Statistik Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="bg-slate-900/80 backdrop-blur-md border border-slate-800 p-5 rounded-2xl shadow-lg flex items-center justify-between">
+                <div>
+                    <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Total Pemasukan / Gaji</p>
+                    <h3 id="statTotalIn" class="text-2xl font-extrabold text-emerald-400 mt-1">Rp 0</h3>
+                    <span id="labelPeriodeIn" class="text-xs text-slate-500">Bulan aktif</span>
+                </div>
+                <div class="bg-emerald-500/10 text-emerald-400 p-3.5 rounded-xl border border-emerald-500/20">
+                    <i class="fa-solid fa-arrow-trend-up text-xl"></i>
+                </div>
+            </div>
+            <div class="bg-slate-900/80 backdrop-blur-md border border-slate-800 p-5 rounded-2xl shadow-lg flex items-center justify-between">
+                <div>
+                    <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Total Pengeluaran</p>
+                    <h3 id="statTotalOut" class="text-2xl font-extrabold text-rose-500 mt-1">Rp 0</h3>
+                    <span id="labelPeriodeOut" class="text-xs text-slate-500">Bulan aktif</span>
+                </div>
+                <div class="bg-rose-500/10 text-rose-500 p-3.5 rounded-xl border border-rose-500/20">
+                    <i class="fa-solid fa-arrow-trend-down text-xl"></i>
+                </div>
+            </div>
+            <div class="bg-slate-900/80 backdrop-blur-md border border-slate-800 p-5 rounded-2xl shadow-lg flex items-center justify-between">
+                <div>
+                    <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Sisa Saldo / Sisa Uang</p>
+                    <h3 id="statSaldo" class="text-2xl font-extrabold text-sky-400 mt-1">Rp 0</h3>
+                    <span class="text-xs text-slate-500">Pemasukan - Pengeluaran</span>
+                </div>
+                <div class="bg-sky-500/10 text-sky-400 p-3.5 rounded-xl border border-sky-500/20">
+                    <i class="fa-solid fa-wallet text-xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabel Riwayat Keuangan -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 print-area">
+            
+            <!-- Tabel Pemasukan / Gaji -->
+            <div class="bg-slate-900/80 backdrop-blur-md border border-slate-800 rounded-2xl shadow-lg overflow-hidden flex flex-col print:bg-white print:border-gray-300">
+                <div class="p-4 border-b border-slate-800 print:border-gray-300 flex justify-between items-center bg-slate-950/60 print:bg-gray-100">
+                    <h2 class="text-sm font-bold text-emerald-600 print:text-black"><i class="fa-solid fa-circle-arrow-down mr-1.5"></i> Riwayat Pemasukan / Gaji</h2>
+                    <span id="countIn" class="text-xs text-slate-400 print:text-gray-600">0 transaksi</span>
+                </div>
+                <div class="overflow-x-auto flex-grow">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-950 print:bg-gray-200 text-slate-400 print:text-black text-[10px] uppercase font-semibold border-b border-slate-800 print:border-gray-300">
+                                <th class="py-3 px-4">Tanggal</th>
+                                <th class="py-3 px-4">Sumber / Keterangan</th>
+                                <th class="py-3 px-4 text-right">Jumlah</th>
+                                <th class="py-3 px-4 text-center no-print">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pemasukanTableBody" class="divide-y divide-slate-800 print:divide-gray-200 text-xs text-slate-200 print:text-black">
+                            <!-- JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Tabel Pengeluaran -->
+            <div class="bg-slate-900/80 backdrop-blur-md border border-slate-800 rounded-2xl shadow-lg overflow-hidden flex flex-col print:bg-white print:border-gray-300">
+                <div class="p-4 border-b border-slate-800 print:border-gray-300 flex justify-between items-center bg-slate-950/60 print:bg-gray-100">
+                    <h2 class="text-sm font-bold text-rose-500 print:text-black"><i class="fa-solid fa-circle-arrow-up mr-1.5"></i> Riwayat Pengeluaran</h2>
+                    <span id="countOut" class="text-xs text-slate-400 print:text-gray-600">0 transaksi</span>
+                </div>
+                <div class="overflow-x-auto flex-grow">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-950 print:bg-gray-200 text-slate-400 print:text-black text-[10px] uppercase font-semibold border-b border-slate-800 print:border-gray-300">
+                                <th class="py-3 px-4">Tanggal</th>
+                                <th class="py-3 px-4">Kategori & Keterangan</th>
+                                <th class="py-3 px-4 text-right">Jumlah</th>
+                                <th class="py-3 px-4 text-center no-print">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pengeluaranTableBody" class="divide-y divide-slate-800 print:divide-gray-200 text-xs text-slate-200 print:text-black">
+                            <!-- JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- MODAL TAMBAH/EDIT PEMASUKAN -->
+    <div id="pemasukanModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden">
+            <div class="bg-slate-950 text-white px-5 py-4 flex justify-between items-center border-b border-slate-800">
+                <h3 id="inModalTitle" class="font-bold text-sm text-emerald-400">Tambah Pemasukan / Gaji</h3>
+                <button onclick="closePemasukanModal()" class="text-slate-400 hover:text-white transition"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form onsubmit="savePemasukan(event)" class="p-5 space-y-4">
+                <input type="hidden" id="inId">
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-400 uppercase mb-1">Tanggal</label>
+                    <input type="date" id="inDate" min="2026-10-01" required class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-400 uppercase mb-1">Sumber / Keterangan</label>
+                    <input type="text" id="inDesc" placeholder="Contoh: Gaji Bulanan, Bonus" required class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-400 uppercase mb-1">Jumlah (Rp)</label>
+                    <input type="number" id="inAmount" min="1" placeholder="5000000" required class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none">
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closePemasukanModal()" class="px-3.5 py-2 rounded-xl border border-slate-800 text-slate-400 text-xs font-semibold hover:bg-slate-800 transition">Batal</button>
+                    <button type="submit" class="px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL TAMBAH/EDIT PENGELUARAN -->
+    <div id="pengeluaranModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden">
+            <div class="bg-slate-950 text-white px-5 py-4 flex justify-between items-center border-b border-slate-800">
+                <h3 id="outModalTitle" class="font-bold text-sm text-rose-500">Tambah Pengeluaran</h3>
+                <button onclick="closePengeluaranModal()" class="text-slate-400 hover:text-white transition"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form onsubmit="savePengeluaran(event)" class="p-5 space-y-4">
+                <input type="hidden" id="outId">
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-400 uppercase mb-1">Tanggal</label>
+                    <input type="date" id="outDate" min="2026-10-01" required class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-400 uppercase mb-1">Kategori</label>
+                    <select id="outCategory" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none">
+                        <option value="Makan & Minum">Makan & Minum</option>
+                        <option value="Transportasi">Transportasi</option>
+                        <option value="Belanja Bulanan">Belanja Bulanan</option>
+                        <option value="Tagihan & Internet">Tagihan & Internet</option>
+                        <option value="Lain-lain">Lain-lain</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-400 uppercase mb-1">Keterangan Detail</label>
+                    <input type="text" id="outDesc" placeholder="Contoh: Beli makan siang, bensin" required class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-400 uppercase mb-1">Jumlah (Rp)</label>
+                    <input type="number" id="outAmount" min="1" placeholder="50000" required class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none">
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closePengeluaranModal()" class="px-3.5 py-2 rounded-xl border border-slate-800 text-slate-400 text-xs font-semibold hover:bg-slate-800 transition">Batal</button>
+                    <button type="submit" class="px-4 py-2 rounded-xl bg-rose-600 text-white text-xs font-semibold hover:bg-rose-700 transition">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- SCRIPT -->
+    <script>
+        let pemasukan = JSON.parse(localStorage.getItem('gwm_finance_in_oct2026')) || [
+            { id: 'IN1', date: '2026-10-01', desc: 'Gaji Bulanan Oktober', amount: 6500000 }
+        ];
+
+        let pengeluaran = JSON.parse(localStorage.getItem('gwm_finance_out_oct2026')) || [
+            { id: 'OUT1', date: '2026-10-01', category: 'Makan & Minum', desc: 'Makan siang & kopi', amount: 65000 }
+        ];
+
+        const namaBulan = [
+            "Januari", "Februari", "Maret", "April", "Mei", "Juni", 
+            "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+        ];
+
+        function saveStorage() {
+            localStorage.setItem('gwm_finance_in_oct2026', JSON.stringify(pemasukan));
+            localStorage.setItem('gwm_finance_out_oct2026', JSON.stringify(pengeluaran));
+            renderFinance();
+        }
+
+        function formatRupiah(num) {
+            return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(num);
+        }
+
+        function initBulanDropdown() {
+            const select = document.getElementById('filterBulan');
+            let monthsSet = new Set();
+            
+            // Masukkan bulan saat ini & bulan dari data yang ada
+            monthsSet.add('2026-10'); // Mulai 1 Oktober 2026
+            
+            pemasukan.forEach(i => { if(i.date) monthsSet.add(i.date.substring(0, 7)); });
+            pengeluaran.forEach(i => { if(i.date) monthsSet.add(i.date.substring(0, 7)); });
+
+            let sortedMonths = Array.from(monthsSet).sort();
+            let currentVal = select.value || '2026-10';
+
+            select.innerHTML = '';
+            sortedMonths.forEach(m => {
+                let parts = m.split('-');
+                let year = parts[0];
+                let monthIdx = parseInt(parts[1]) - 1;
+                let opt = document.createElement('option');
+                opt.value = m;
+                opt.textContent = `${namaBulan[monthIdx]} ${year}`;
+                select.appendChild(opt);
+            });
+
+            if(sortedMonths.includes(currentVal)) {
+                select.value = currentVal;
+            } else {
+                select.value = sortedMonths[sortedMonths.length - 1];
+            }
+        }
+
+        function changeFilterBulan() {
+            renderFinance();
+        }
+
+        function renderFinance() {
+            initBulanDropdown();
+            const selectedMonth = document.getElementById('filterBulan').value; // format "YYYY-MM"
+            
+            let partsBulan = selectedMonth.split('-');
+            let namaBulanStr = `${namaBulan[parseInt(partsBulan[1])-1]} ${partsBulan[0]}`;
+            document.getElementById('printTitleBulan').innerText = `Periode: ${namaBulanStr}`;
+            document.getElementById('labelPeriodeIn').innerText = `Bulan ${namaBulanStr}`;
+            document.getElementById('labelPeriodeOut').innerText = `Bulan ${namaBulanStr}`;
+
+            const inBody = document.getElementById('pemasukanTableBody');
+            const outBody = document.getElementById('pengeluaranTableBody');
+            inBody.innerHTML = '';
+            outBody.innerHTML = '';
+
+            let filteredIn = pemasukan.filter(i => i.date && i.date.startsWith(selectedMonth));
+            let filteredOut = pengeluaran.filter(i => i.date && i.date.startsWith(selectedMonth));
+
+            let totalIn = 0;
+            let totalOut = 0;
+
+            filteredIn.forEach(item => {
+                totalIn += Number(item.amount);
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-800/40 print:hover:bg-transparent transition border-b border-slate-800 print:border-gray-200";
+                tr.innerHTML = `
+                    <td class="py-3 px-4 font-mono text-slate-400 print:text-black">${item.date}</td>
+                    <td class="py-3 px-4 font-medium text-white print:text-black">${item.desc}</td>
+                    <td class="py-3 px-4 text-right font-bold text-emerald-400 print:text-black">+ ${formatRupiah(item.amount)}</td>
+                    <td class="py-3 px-4 text-center no-print">
+                        <div class="flex items-center justify-center gap-2">
+                            <button onclick="editIn('${item.id}')" class="w-7 h-7 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500 hover:text-white transition flex items-center justify-center" title="Edit"><i class="fa-solid fa-pen text-[10px]"></i></button>
+                            <button onclick="deleteIn('${item.id}')" class="w-7 h-7 rounded-lg bg-rose-500/10 text-rose-400 hover:bg-rose-500 hover:text-white transition flex items-center justify-center" title="Hapus"><i class="fa-solid fa-trash text-[10px]"></i></button>
+                        </div>
+                    </td>
+                `;
+                inBody.appendChild(tr);
+            });
+
+            filteredOut.forEach(item => {
+                totalOut += Number(item.amount);
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-800/40 print:hover:bg-transparent transition border-b border-slate-800 print:border-gray-200";
+                tr.innerHTML = `
+                    <td class="py-3 px-4 font-mono text-slate-400 print:text-black">${item.date}</td>
+                    <td class="py-3 px-4"><span class="px-2 py-0.5 rounded text-[9px] font-bold bg-slate-800 print:bg-gray-200 text-slate-300 print:text-black border border-slate-700 print:border-gray-300 mr-1.5">${item.category}</span> <span class="text-white print:text-black">${item.desc}</span></td>
+                    <td class="py-3 px-4 text-right font-bold text-rose-500 print:text-black">- ${formatRupiah(item.amount)}</td>
+                    <td class="py-3 px-4 text-center no-print">
+                        <div class="flex items-center justify-center gap-2">
+                            <button onclick="editOut('${item.id}')" class="w-7 h-7 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500 hover:text-white transition flex items-center justify-center" title="Edit"><i class="fa-solid fa-pen text-[10px]"></i></button>
+                            <button onclick="deleteOut('${item.id}')" class="w-7 h-7 rounded-lg bg-rose-500/10 text-rose-400 hover:bg-rose-500 hover:text-white transition flex items-center justify-center" title="Hapus"><i class="fa-solid fa-trash text-[10px]"></i></button>
+                        </div>
+                    </td>
+                `;
+                outBody.appendChild(tr);
+            });
+
+            if(filteredIn.length === 0) {
+                inBody.innerHTML = `<tr><td colspan="4" class="text-center py-6 text-slate-500 print:text-gray-500">Tidak ada pemasukan di bulan ini.</td></tr>`;
+            }
+            if(filteredOut.length === 0) {
+                outBody.innerHTML = `<tr><td colspan="4" class="text-center py-6 text-slate-500 print:text-gray-500">Tidak ada pengeluaran di bulan ini.</td></tr>`;
+            }
+
+            document.getElementById('statTotalIn').innerText = formatRupiah(totalIn);
+            document.getElementById('statTotalOut').innerText = formatRupiah(totalOut);
+            
+            const saldo = totalIn - totalOut;
+            const saldoEl = document.getElementById('statSaldo');
+            saldoEl.innerText = formatRupiah(saldo);
+            saldoEl.className = saldo >= 0 ? "text-2xl font-extrabold text-sky-400 mt-1" : "text-2xl font-extrabold text-rose-500 mt-1";
+
+            document.getElementById('countIn').innerText = `${filteredIn.length} transaksi`;
+            document.getElementById('countOut').innerText = `${filteredOut.length} transaksi`;
+        }
+
+        function printLaporanPDF() {
+            const now = new Date();
+            document.getElementById('printDateNow').innerText = now.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
+            window.print();
+        }
+
+        // Pemasukan handlers
+        function openPemasukanModal() {
+            document.getElementById('inModalTitle').innerText = "Tambah Pemasukan / Gaji";
+            document.getElementById('inId').value = '';
+            document.getElementById('inDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('inDesc').value = '';
+            document.getElementById('inAmount').value = '';
+            document.getElementById('pemasukanModal').classList.remove('hidden');
+        }
+        function closePemasukanModal() {
+            document.getElementById('pemasukanModal').classList.add('hidden');
+        }
+        function editIn(id) {
+            const item = pemasukan.find(i => i.id === id);
+            if(!item) return;
+            document.getElementById('inModalTitle').innerText = "Edit Pemasukan / Gaji";
+            document.getElementById('inId').value = item.id;
+            document.getElementById('inDate').value = item.date;
+            document.getElementById('inDesc').value = item.desc;
+            document.getElementById('inAmount').value = item.amount;
+            document.getElementById('pemasukanModal').classList.remove('hidden');
+        }
+        function savePemasukan(e) {
+            e.preventDefault();
+            const id = document.getElementById('inId').value;
+            const date = document.getElementById('inDate').value;
+            const desc = document.getElementById('inDesc').value;
+            const amount = Number(document.getElementById('inAmount').value);
+
+            if(id) {
+                const idx = pemasukan.findIndex(i => i.id === id);
+                if(idx !== -1) {
+                    pemasukan[idx] = { id, date, desc, amount };
+                }
+            } else {
+                pemasukan.unshift({ id: 'IN-' + Date.now(), date, desc, amount });
+            }
+            saveStorage();
+            closePemasukanModal();
+        }
+        function deleteIn(id) {
+            if(confirm("Hapus data pemasukan ini?")) {
+                pemasukan = pemasukan.filter(i => i.id !== id);
+                saveStorage();
+            }
+        }
+
+        // Pengeluaran handlers
+        function openPengeluaranModal() {
+            document.getElementById('outModalTitle').innerText = "Tambah Pengeluaran";
+            document.getElementById('outId').value = '';
+            document.getElementById('outDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('outCategory').value = 'Makan & Minum';
+            document.getElementById('outDesc').value = '';
+            document.getElementById('outAmount').value = '';
+            document.getElementById('pengeluaranModal').classList.remove('hidden');
+        }
+        function closePengeluaranModal() {
+            document.getElementById('pengeluaranModal').classList.add('hidden');
+        }
+        function editOut(id) {
+            const item = pengeluaran.find(i => i.id === id);
+            if(!item) return;
+            document.getElementById('outModalTitle').innerText = "Edit Pengeluaran";
+            document.getElementById('outId').value = item.id;
+            document.getElementById('outDate').value = item.date;
+            document.getElementById('outCategory').value = item.category;
+            document.getElementById('outDesc').value = item.desc;
+            document.getElementById('outAmount').value = item.amount;
+            document.getElementById('pengeluaranModal').classList.remove('hidden');
+        }
+        function savePengeluaran(e) {
+            e.preventDefault();
+            const id = document.getElementById('outId').value;
+            const date = document.getElementById('outDate').value;
+            const category = document.getElementById('outCategory').value;
+            const desc = document.getElementById('outDesc').value;
+            const amount = Number(document.getElementById('outAmount').value);
+
+            if(id) {
+                const idx = pengeluaran.findIndex(i => i.id === id);
+                if(idx !== -1) {
+                    pengeluaran[idx] = { id, date, category, desc, amount };
+                }
+            } else {
+                pengeluaran.unshift({ id: 'OUT-' + Date.now(), date, category, desc, amount });
+            }
+            saveStorage();
+            closePengeluaranModal();
+        }
+        function deleteOut(id) {
+            if(confirm("Hapus data pengeluaran ini?")) {
+                pengeluaran = pengeluaran.filter(i => i.id !== id);
+                saveStorage();
+            }
+        }
+
+        window.onload = function() {
+            renderFinance();
+        };
+    </script>
+</body>
+</html>
